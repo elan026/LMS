@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node --input-type=module --experimental-vm-modules)",
+      "Bash(node -e \"import\\('./src/app.js'\\).then\\(\\(\\) => console.log\\('IMPORT OK'\\)\\).catch\\(e => console.error\\('IMPORT ERROR:', e.message\\)\\)\")",
+      "Bash(node src/server.js)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(Stop-Process -Name \"node\" -Force)",
+      "PowerShell(Get-ChildItem -Path \"p:\\\\LMS\\\\student-app\\\\src\" -Recurse | ForEach-Object { $_.FullName })"
+    ]
+  }
+}
