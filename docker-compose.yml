@@ -1,0 +1,96 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: lms-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+    container_name: lms-backend
+    restart: unless-stopped
+    command: npm run dev -- --legacy-watch
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      NODE_ENV: development
+      PORT: 5000
+      JWT_SECRET: replace-with-a-local-secret
+      MONGO_URI: mongodb://mongo:27017/lms
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  admin-app:
+    build:
+      context: ./admin-app
+    container_name: lms-admin-app
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./admin-app:/app
+      - /app/node_modules
+
+  student-app:
+    build:
+      context: ./student-app
+    container_name: lms-student-app
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./student-app:/app
+      - /app/node_modules
+
+  faculty-app:
+    build:
+      context: ./faculty-app
+    container_name: lms-faculty-app
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "5175:5175"
+    volumes:
+      - ./faculty-app:/app
+      - /app/node_modules
+
+volumes:
+  mongo-data:

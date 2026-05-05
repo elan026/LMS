@@ -360,3 +360,91 @@ Then open:
 Backend API:
 
 - `http://localhost:5000/api/health`
+
+## 16. Docker Setup
+
+Docker support is now included for the full LMS stack:
+
+- MongoDB
+- backend
+- admin-app
+- student-app
+- faculty-app
+
+### Prerequisites
+
+Install:
+
+- Docker Desktop
+- Docker Compose support
+
+### Start Everything With Docker
+
+From the repo root:
+
+```powershell
+docker compose up --build
+```
+
+This will start:
+
+- MongoDB on `27017`
+- backend on `5000`
+- admin app on `5173`
+- student app on `5174`
+- faculty app on `5175`
+
+### Open The Apps
+
+- Admin: `http://localhost:5173`
+- Student: `http://localhost:5174`
+- Faculty: `http://localhost:5175`
+- Backend health: `http://localhost:5000/api/health`
+
+### Run In Background
+
+```powershell
+docker compose up --build -d
+```
+
+### Stop Everything
+
+```powershell
+docker compose down
+```
+
+### Stop And Remove Mongo Volume
+
+Use this only if you want a fresh database:
+
+```powershell
+docker compose down -v
+```
+
+### View Logs
+
+```powershell
+docker compose logs -f backend
+docker compose logs -f admin-app
+docker compose logs -f student-app
+docker compose logs -f faculty-app
+```
+
+### Docker Notes
+
+- The backend container uses `MONGO_URI=mongodb://mongo:27017/lms`.
+- The frontend containers still expose apps through your local browser on `localhost`.
+- Vite is configured in Docker to listen on `0.0.0.0`.
+- Source folders are mounted into the containers for development.
+- Containerized `node_modules` are kept inside the containers.
+
+### Important Current Caveat
+
+Docker starts the infrastructure, but it does not currently populate demo users automatically.
+
+That means:
+
+- the apps may load successfully
+- login may still fail unless valid users already exist in MongoDB
+
+This is because the current `backend/src/seed.js` is still based on the older Prisma flow and is not the active Mongoose seed path for the live backend.
