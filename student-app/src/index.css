@@ -2,36 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 bg-student-600 text-white rounded-lg hover:bg-student-700 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-student-600 text-white text-sm font-medium rounded-lg hover:bg-student-700 active:bg-student-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
-
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors;
   }
-
   .btn-danger {
-    @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50;
   }
-
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-student-500;
+    @apply w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-student-500 focus:border-transparent transition-all placeholder:text-gray-400;
   }
-
   .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm p-6;
   }
-
-  .table {
-    @apply w-full border-collapse;
+  .page-header {
+    @apply text-2xl font-bold text-gray-900;
   }
-
-  .table-header {
-    @apply bg-student-100 text-student-900 font-semibold;
+  .page-subheader {
+    @apply text-sm text-gray-500 mt-1;
   }
-
-  .table-row {
-    @apply border-b hover:bg-gray-50;
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 }

@@ -6,16 +6,26 @@ export async function authenticateUser(email, password) {
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw { statusCode: 401, message: 'Invalid credentials' };
+    throw { statusCode: 401, message: 'Invalid credentials (user not found)' };
   }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
+  const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
   if (!isPasswordValid) {
-    throw { statusCode: 401, message: 'Invalid credentials' };
+    throw { statusCode: 401, message: 'Invalid credentials (password mismatch)' };
   }
 
-  const token = issueToken(user);
+  const role = user.role.toLowerCase();
+  
+  // Create a clean user object with lowercase role for the token
+  const userPayload = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: role,
+  };
+
+  const token = issueToken(userPayload);
 
   return {
     token,
@@ -23,7 +33,7 @@ export async function authenticateUser(email, password) {
       id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: role,
     },
   };
 }
@@ -39,6 +49,6 @@ export async function verifyUserToken(decoded) {
     id: user._id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role: user.role.toLowerCase(),
   };
 }

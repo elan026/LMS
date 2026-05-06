@@ -16,8 +16,8 @@ function App() {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1D9E75]"></div>
-          <p className="mt-4 text-[#1D9E75] font-semibold">Loading...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#22c55e]"></div>
+          <p className="mt-4 text-[#22c55e] font-semibold">Loading...</p>
         </div>
       </div>
     );

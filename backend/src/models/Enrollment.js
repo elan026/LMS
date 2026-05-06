@@ -6,9 +6,11 @@ const enrollmentSchema = new Schema(
   {
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+    enrolledAt: { type: Date, default: Date.now },
+    status: { type: String, enum: ['active', 'completed', 'dropped'], default: 'active' },
   },
   {
-    timestamps: true,
+    timestamps: false, // Prisma handles enrolledAt manually or via default
     toJSON: {
       transform(doc, ret) {
         ret.id = ret._id.toString();
@@ -24,4 +26,4 @@ const enrollmentSchema = new Schema(
 
 enrollmentSchema.index({ studentId: 1, courseId: 1 }, { unique: true });
 
-export default mongoose.model('Enrollment', enrollmentSchema);
+export default mongoose.model('Enrollment', enrollmentSchema, 'Enrollment');

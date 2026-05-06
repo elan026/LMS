@@ -2,6 +2,22 @@ import { useEffect, useState } from 'react';
 import { getMyCourses } from '../api/coursesApi';
 import { getCourseGrades } from '../api/gradesApi';
 import { useAuthStore } from '../store/authStore';
+import Sidebar from '../components/Sidebar';
+
+function StatCard({ label, value, sub, color }) {
+  const colors = {
+    purple: 'from-faculty-500 to-faculty-700',
+    blue:   'from-blue-500 to-blue-700',
+    emerald:'from-emerald-500 to-emerald-700',
+  };
+  return (
+    <div className={`bg-gradient-to-br ${colors[color]} rounded-2xl p-6 text-white shadow-md`}>
+      <p className="text-sm font-medium opacity-80">{label}</p>
+      <p className="text-4xl font-bold mt-2">{value}</p>
+      {sub && <p className="text-xs opacity-70 mt-1">{sub}</p>}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuthStore();
@@ -42,39 +58,54 @@ export default function Dashboard() {
     loadDashboard();
   }, []);
 
+  const totalStudents = courses.reduce((sum, course) => sum + course.studentCount, 0);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
   return (
-    <div>
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Teaching {courses.length} courses this semester</h1>
-          <p className="mt-2 text-gray-600">Welcome back, {user?.name}. Your faculty dashboard is ready.</p>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="page-header">{greeting}, {user?.name?.split(' ')[0]} 👋</h1>
+          <p className="page-subheader">Welcome back, {user?.name}. Your faculty dashboard is ready.</p>
         </div>
-      </div>
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
-      )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">{error}</div>
+        )}
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#534AB7]"></div>
-        </div>
-      ) : courses.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500">No courses assigned yet.</div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => (
-            <div key={course.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900">{course.title || course.name}</h2>
-              <p className="mt-3 text-gray-600">{course.description || 'No description provided.'}</p>
-              <div className="mt-5 flex items-center justify-between text-sm text-gray-500">
-                <span>{course.studentCount ?? 0} students</span>
-                <span className="rounded-full bg-[#534AB7] px-3 py-1 text-white">Faculty</span>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[1,2,3].map(i => (
+              <div key={i} className="h-32 bg-gray-200 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <StatCard label="Teaching Courses" value={courses.length} sub="Active this semester" color="purple" />
+            <StatCard label="Total Students" value={totalStudents} sub="Across all courses" color="blue" />
+            <StatCard label="Grade Records" value={courses.length} sub="Courses with grades" color="emerald" />
+          </div>
+        )}
+
+        <div className="mt-8 card">
+          <h2 className="font-semibold text-gray-900 mb-1">Course overview</h2>
+          <p className="text-sm text-gray-500 mb-4">Quick stats for your courses.</p>
+          <div className="space-y-4">
+            {courses.map((course) => (
+              <div key={course.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-faculty-200 hover:bg-faculty-50 transition-colors">
+                <div>
+                  <h3 className="font-medium text-gray-900">{course.title || course.name}</h3>
+                  <p className="text-sm text-gray-500">{course.studentCount} students enrolled</p>
+                </div>
+                <span className="badge bg-faculty-100 text-faculty-700">Active</span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }

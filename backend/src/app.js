@@ -8,6 +8,7 @@ import { requireRole } from './middleware/rbac.js';
 // Shared routes
 import authRouter from './shared/auth.routes.js';
 import profileRouter from './shared/profile.routes.js';
+import userRouter from './shared/user.routes.js';
 
 // Admin module
 import adminUsersRouter from './modules/admin/users.routes.js';
@@ -38,6 +39,7 @@ app.get('/api/health', (req, res) => {
 // Public routes
 app.use('/api/auth', authRouter);
 app.use('/api/me', profileRouter);
+app.use('/api/users', verifyToken, userRouter);
 
 // Admin routes
 const adminRouter = express.Router();
@@ -50,6 +52,7 @@ app.use('/api/admin', verifyToken, requireRole('admin'), adminRouter);
 // Student routes
 const studentRouter = express.Router();
 studentRouter.use('/courses', studentCoursesRouter);
+studentRouter.use('/enrollments', studentCoursesRouter);
 studentRouter.use('/grades', studentGradesRouter);
 app.use('/api/student', verifyToken, requireRole('student'), studentRouter);
 

@@ -26,16 +26,16 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-student-50 to-student-100">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="w-full max-w-md px-4">
         <div className="card bg-white">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-[#1D9E75]">LMS Student</h1>
+            <h1 className="text-3xl font-bold text-student-600">LMS Student</h1>
             <p className="text-gray-600 mt-2">Access your courses, grades, and profile.</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
               {error}
             </div>
           )}
@@ -48,11 +48,9 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
-                disabled={loading}
                 required
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input
@@ -60,13 +58,15 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input-field"
-                disabled={loading}
                 required
               />
             </div>
-
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? 'Logging in...' : 'Login'}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>

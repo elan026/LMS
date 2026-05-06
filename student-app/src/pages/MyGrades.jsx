@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { getMyGrades } from '../api/gradesApi';
-import GradeRow from '../components/GradeRow';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { useAuthStore } from '../store/authStore';
+import Sidebar from '../components/Sidebar';
 
 const getGradeLetter = (score) => {
   if (score >= 90) return 'A';
@@ -16,7 +14,8 @@ const getGradeLetter = (score) => {
 const MyGrades = () => {
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [simulateError, setSimulateError] = useState(null);
+  const [error, setError] = useState('');
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchGrades = async () => {
@@ -24,7 +23,7 @@ const MyGrades = () => {
         const res = await getMyGrades();
         setGrades(res.data);
       } catch (err) {
-        console.error(err);
+        setError(err.response?.data?.error || 'Unable to load grades');
       } finally {
         setLoading(false);
       }
@@ -32,66 +31,79 @@ const MyGrades = () => {
     fetchGrades();
   }, []);
 
-  const simulateAdminCall = async () => {
-    try {
-      await axios.get(`${API_URL}/grades`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-    } catch (err) {
-      if (err.response?.status === 403) {
-        setSimulateError(err.response.data);
-      }
-    }
-  };
+  const averageGrade = grades.length > 0 ? (grades.reduce((sum, g) => sum + g.score, 0) / grades.length).toFixed(1) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Grades</h1>
-            <p className="text-gray-600 mt-1">Review your performance and grade letters at a glance.</p>
-          </div>
-          <button
-            onClick={simulateAdminCall}
-            className="btn-danger"
-          >
-            Try to view all grades (admin only)
-          </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="page-header">My Grades</h1>
+          <p className="page-subheader">View your performance across all courses.</p>
         </div>
 
-        {simulateError && (
-          <div className="mb-6 rounded-lg border border-red-400 bg-red-100 p-4 text-red-800">
-            <p className="font-semibold">This is what happens when a student tries an admin route.</p>
-            <pre className="mt-2 text-sm">{JSON.stringify(simulateError, null, 2)}</pre>
-          </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">{error}</div>
         )}
 
-        <div className="card">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#1D9E75]"></div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-student-600"></div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-student-500 to-student-700 rounded-2xl p-6 text-white shadow-md">
+                <p className="text-sm font-medium opacity-80">Total Grades</p>
+                <p className="text-4xl font-bold mt-2">{grades.length}</p>
+                <p className="text-xs opacity-70 mt-1">Recorded assessments</p>
+              </div>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-md">
+                <p className="text-sm font-medium opacity-80">Average Score</p>
+                <p className="text-4xl font-bold mt-2">{averageGrade}%</p>
+                <p className="text-xs opacity-70 mt-1">Overall performance</p>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 text-white shadow-md">
+                <p className="text-sm font-medium opacity-80">Grade Letter</p>
+                <p className="text-4xl font-bold mt-2">{getGradeLetter(averageGrade)}</p>
+                <p className="text-xs opacity-70 mt-1">Current standing</p>
+              </div>
             </div>
-          ) : grades.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">No grades available.</div>
-          ) : (
-            <table className="table">
-              <thead className="table-header">
-                <tr>
-                  <th className="px-4 py-3 text-left">Course Name</th>
-                  <th className="px-4 py-3 text-left">Score</th>
-                  <th className="px-4 py-3 text-left">Grade Letter</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grades.map((grade) => (
-                  <GradeRow key={grade.id} grade={grade} getGradeLetter={getGradeLetter} />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+
+            <div className="card">
+              <h2 className="font-semibold text-gray-900 mb-1">Grade Details</h2>
+              <p className="text-sm text-gray-500 mb-4">Breakdown of your grades by course.</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-600">Course</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-600">Score</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-600">Grade</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-600">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {grades.map((grade) => (
+                      <tr key={grade.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-900">{grade.course?.title || 'Course'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{grade.score}%</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`badge ${grade.score >= 70 ? 'bg-student-100 text-student-700' : 'bg-red-100 text-red-700'}`}>
+                            {getGradeLetter(grade.score)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{new Date(grade.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </main>
     </div>
   );
 };

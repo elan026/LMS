@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getProfile } from '../api/profileApi';
 import { useAuthStore } from '../store/authStore';
-import RoleBadge from '../components/RoleBadge';
+import Sidebar from '../components/Sidebar';
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -14,7 +15,7 @@ const Profile = () => {
         const res = await getProfile(user.id);
         setProfile(res.data);
       } catch (err) {
-        console.error(err);
+        setError(err.response?.data?.error || 'Unable to load profile');
       } finally {
         setLoading(false);
       }
@@ -23,38 +24,61 @@ const Profile = () => {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 rounded-3xl bg-white p-8 shadow-md">
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600 mt-1">Your student account details are shown below.</p>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="page-header">Profile</h1>
+          <p className="page-subheader">Your student account details.</p>
         </div>
 
-        <div className="card">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#1D9E75]"></div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">{error}</div>
+        )}
+
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-student-600"></div>
+          </div>
+        ) : profile ? (
+          <div className="card">
+            <h2 className="font-semibold text-gray-900 mb-1">Account Information</h2>
+            <p className="text-sm text-gray-500 mb-6">Your personal details and role.</p>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-student-100 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold text-student-700">{profile.name?.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+                  <p className="text-sm text-gray-500">{profile.email}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Full Name</p>
+                  <p className="text-lg font-medium text-gray-900">{profile.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Email Address</p>
+                  <p className="text-lg font-medium text-gray-900">{profile.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Role</p>
+                  <span className="badge bg-student-100 text-student-700">{profile.role}</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Member Since</p>
+                  <p className="text-lg font-medium text-gray-900">{new Date(profile.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
             </div>
-          ) : profile ? (
-            <div className="space-y-4 text-gray-700">
-              <div>
-                <p className="text-sm text-gray-500">Name</p>
-                <p className="text-lg font-semibold">{profile.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="text-lg font-semibold">{profile.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Role</p>
-                <RoleBadge role={profile.role} />
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">Profile not found.</div>
-          )}
-        </div>
-      </div>
+          </div>
+        ) : (
+          <div className="card text-center text-gray-500">No profile data available.</div>
+        )}
+      </main>
     </div>
   );
 };

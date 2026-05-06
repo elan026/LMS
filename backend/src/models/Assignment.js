@@ -7,6 +7,7 @@ const assignmentSchema = new Schema(
     courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
     title: { type: String, required: true, trim: true },
     dueDate: { type: Date, required: true },
+    maxScore: { type: Number, default: 100.0 },
   },
   {
     timestamps: true,
@@ -21,4 +22,4 @@ const assignmentSchema = new Schema(
   }
 );
 
-export default mongoose.model('Assignment', assignmentSchema);
+export default mongoose.model('Assignment', assignmentSchema, 'Assignment');

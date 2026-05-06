@@ -1,63 +1,147 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is a standalone schema for MongoDB integration.
+// Later, this can replace the current schema.prisma in the backend.
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+enum CourseStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  name      String
-  password  String
-  role      String   @default("student")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String   @unique
+  password_hash String
+  role          Role     @default(STUDENT)
 
-  enrollments Enrollment[]
-  grades      Grade[]
-  courses     Course[] @relation("CourseInstructor")
+  // Relationships
+  coursesTaught Course[]       @relation("CourseInstructor")
+  enrollments   Enrollment[]
+  grades        Grade[]
+  attendance    Attendance[]
+  announcements Announcement[] @relation("UserAnnouncements")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Course {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique
-  description String?
-  instructorId String   @db.ObjectId
-  instructor  User     @relation("CourseInstructor", fields: [instructorId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  title        String       @unique // Preserving unique constraint rule
+  status       CourseStatus @default(ACTIVE)
+  semester     String
+  year         Int
 
-  enrollments Enrollment[]
-  grades      Grade[]
+  // Relationships
+  instructorId String       @db.ObjectId
+  instructor   User         @relation("CourseInstructor", fields: [instructorId], references: [id])
+  
+  enrollments  Enrollment[]
+  grades       Grade[]
+  assignments  Assignment[]
+  attendance   Attendance[]
+  announcements Announcement[] @relation("CourseAnnouncements")
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model Enrollment {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  studentId String   @db.ObjectId
-  student   User     @relation(fields: [studentId], references: [id])
-  courseId  String   @db.ObjectId
-  course    Course   @relation(fields: [courseId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  enrolledAt DateTime @default(now())
 
+  // Relationships
+  studentId  String   @db.ObjectId
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String   @db.ObjectId
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  // MongoDB Unique compound index rule for Prisma
   @@unique([studentId, courseId])
 }
 
 model Grade {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  score     Float    // Validated 0-100 in application logic
+  letter    String
+
+  // Relationships
   studentId String   @db.ObjectId
-  student   User     @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId  String   @db.ObjectId
-  course    Course   @relation(fields: [courseId], references: [id])
-  score     Float
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([studentId, courseId])
+}
+
+model Assignment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  dueDate   DateTime
+  maxScore  Float    @default(100.0)
+
+  // Relationships
+  courseId  String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  date      DateTime
+  status    AttendanceStatus
+
+  // Relationships
+  studentId String   @db.ObjectId
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId  String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A student can only have one attendance record per course per day
+  @@unique([studentId, courseId, date])
+}
+
+model Announcement {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  content   String
+  
+  // Optional courseId: if null, it is a system-wide admin announcement.
+  courseId  String?  @db.ObjectId
+  course    Course?  @relation("CourseAnnouncements", fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdBy String   @db.ObjectId
+  author    User     @relation("UserAnnouncements", fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

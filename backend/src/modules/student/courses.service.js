@@ -3,8 +3,8 @@ import Enrollment from '../../models/Enrollment.js';
 export async function getEnrolledCourses(studentId) {
   return Enrollment.find({ studentId }).populate({
     path: 'courseId',
-    select: 'title status facultyId',
-    populate: { path: 'facultyId', select: 'name email' },
+    select: 'title status instructorId',
+    populate: { path: 'instructorId', select: 'name email' },
   });
 }
 

@@ -1,0 +1,18 @@
+# Node
+node_modules/
+
+# Environment secrets
+.env
+.env.local
+!.env.example
+
+# Build
+dist/
+*.log
+
+# Vite cache
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
