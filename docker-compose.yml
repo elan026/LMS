@@ -1,3 +1,5 @@
+version: '3.9'
+
 services:
   mongo:
     image: mongo:7
@@ -51,7 +53,7 @@ services:
         condition: service_healthy
     environment:
       CHOKIDAR_USEPOLLING: "true"
-      VITE_API_URL: http://localhost:5000/api
+      VITE_API_URL: http://backend:5000/api
     ports:
       - "5173:5173"
     volumes:
@@ -68,7 +70,7 @@ services:
         condition: service_healthy
     environment:
       CHOKIDAR_USEPOLLING: "true"
-      VITE_API_URL: http://localhost:5000/api
+      VITE_API_URL: http://backend:5000/api
     ports:
       - "5174:5174"
     volumes:
@@ -85,7 +87,7 @@ services:
         condition: service_healthy
     environment:
       CHOKIDAR_USEPOLLING: "true"
-      VITE_API_URL: http://localhost:5000/api
+      VITE_API_URL: http://backend:5000/api
     ports:
       - "5175:5175"
     volumes:
