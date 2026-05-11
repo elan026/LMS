@@ -1,11 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
-import xlsx from 'xlsx';
-import path from 'path';
 import { faker } from '@faker-js/faker';
 
-// Use the database URL directly
-const uri = "mongodb://localhost:27017/lms?replicaSet=rs0";
+const uri = "mongodb://root:root@ac-feso6cw-shard-00-00.idrpxvm.mongodb.net:27017,ac-feso6cw-shard-00-01.idrpxvm.mongodb.net:27017,ac-feso6cw-shard-00-02.idrpxvm.mongodb.net:27017/lms?ssl=true&replicaSet=atlas-12snz8-shard-0&authSource=admin&appName=Cluster0";
 
 const facultyMembers = [
     { name: "Dr. Lalitha K", email: "lalitha.k@nandhaengg.org" },
@@ -27,16 +24,19 @@ async function main() {
     console.log('Connecting to MongoDB...');
     const client = new MongoClient(uri);
     await client.connect();
+    console.log('Connected!');
     const db = client.db('lms');
 
     console.log('Clearing existing collections...');
-    await db.collection('Grade').deleteMany({});
-    await db.collection('Attendance').deleteMany({});
-    await db.collection('Enrollment').deleteMany({});
-    await db.collection('Assignment').deleteMany({});
-    await db.collection('Announcement').deleteMany({});
-    await db.collection('Course').deleteMany({});
-    await db.collection('User').deleteMany({});
+    await Promise.all([
+        db.collection('Grade').deleteMany({}),
+        db.collection('Attendance').deleteMany({}),
+        db.collection('Enrollment').deleteMany({}),
+        db.collection('Assignment').deleteMany({}),
+        db.collection('Announcement').deleteMany({}),
+        db.collection('Course').deleteMany({}),
+        db.collection('User').deleteMany({})
+    ]);
 
     const defaultPassword = await bcrypt.hash('password123', 10);
     const now = new Date();
@@ -55,8 +55,10 @@ async function main() {
     await db.collection('User').insertOne(admin);
 
     // 2. Create Real Faculty
-    console.log('Creating real faculty...');
+    console.log('Creating faculty...');
     const createdFaculty = [];
+    const facultyDocs = [];
+
     for (const f of facultyMembers) {
         const fac = {
             _id: new ObjectId(),
@@ -67,12 +69,11 @@ async function main() {
             createdAt: now,
             updatedAt: now
         };
-        await db.collection('User').insertOne(fac);
+        facultyDocs.push(fac);
         createdFaculty.push(fac);
     }
 
-    // 3. Generate Fake Faculty to reach ~25 faculty
-    console.log('Generating fake faculty...');
+    // 3. Generate Fake Faculty
     for (let i = 0; i < 12; i++) {
         const fac = {
             _id: new ObjectId(),
@@ -83,42 +84,17 @@ async function main() {
             createdAt: now,
             updatedAt: now
         };
-        await db.collection('User').insertOne(fac);
+        facultyDocs.push(fac);
         createdFaculty.push(fac);
     }
+    await db.collection('User').insertMany(facultyDocs);
+    console.log(`Created ${createdFaculty.length} faculty`);
 
-    // 4. Create Real Students from Excel
-    console.log('Reading real students from Excel...');
+    // 4. Generate Students (bulk)
+    console.log('Generating students...');
     const createdStudents = [];
-    try {
-        const filePath = path.resolve('../AI&DS STUDENT DETAILS.xlsx');
-        const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-        
-        for (const row of data) {
-            if (!row.Name || !row.Reg_Number) continue;
-            const stu = {
-                _id: new ObjectId(),
-                name: row.Name,
-                email: `${row.Reg_Number.toLowerCase()}@student.nandhaengg.org`,
-                password_hash: defaultPassword,
-                role: 'STUDENT',
-                createdAt: now,
-                updatedAt: now
-            };
-            await db.collection('User').insertOne(stu);
-            createdStudents.push(stu);
-        }
-    } catch (e) {
-        console.error('Failed to parse excel:', e.message);
-    }
-
-    // 5. Generate Fake Students to reach >100 total students
-    console.log(`Currently ${createdStudents.length} real students. Generating fake students...`);
-    const studentsNeeded = Math.max(100 - createdStudents.length, 50);
-    const fakeStudents = [];
-    for (let i = 0; i < studentsNeeded; i++) {
+    const studentDocs = [];
+    for (let i = 0; i < 100; i++) {
         const stu = {
             _id: new ObjectId(),
             name: faker.person.fullName(),
@@ -128,19 +104,17 @@ async function main() {
             createdAt: now,
             updatedAt: now
         };
-        fakeStudents.push(stu);
+        studentDocs.push(stu);
         createdStudents.push(stu);
     }
-    if (fakeStudents.length > 0) {
-        await db.collection('User').insertMany(fakeStudents);
-    }
-    console.log(`Total students created: ${createdStudents.length}`);
+    await db.collection('User').insertMany(studentDocs);
+    console.log(`Created ${createdStudents.length} students`);
 
-    // 6. Create Courses & Assign to Faculty
+    // 5. Create Courses (bulk)
     console.log('Creating courses...');
     const createdCourses = [];
     const subjects = ['Data Structures', 'Machine Learning', 'Artificial Intelligence', 'Operating Systems', 'Database Systems', 'Computer Networks', 'Cloud Computing', 'Deep Learning', 'Software Engineering', 'Web Development'];
-    
+
     for (const fac of createdFaculty) {
         const numCourses = faker.number.int({ min: 1, max: 2 });
         for (let i = 0; i < numCourses; i++) {
@@ -157,24 +131,31 @@ async function main() {
             createdCourses.push(course);
         }
     }
-    if (createdCourses.length > 0) {
-        await db.collection('Course').insertMany(createdCourses);
-    }
+    await db.collection('Course').insertMany(createdCourses);
+    console.log(`Created ${createdCourses.length} courses`);
 
-    // 7. Create Enrollments, Grades, Attendance, Assignments
-    console.log('Simulating enrollments, grades, attendance, and assignments...');
-    
+    // 6. Bulk insert Assignments, Enrollments, Grades, Attendance
+    console.log('Simulating enrollments, grades, attendance, assignments...');
+
+    const allAssignments = [];
+    const allEnrollments = [];
+    const allGrades = [];
+    const allAttendance = [];
+    const allAnnouncements = [];
+
     for (const course of createdCourses) {
-        await db.collection('Assignment').insertMany([
+        // Assignments
+        allAssignments.push(
             { _id: new ObjectId(), title: 'Midterm Project', dueDate: faker.date.future(), maxScore: 100, courseId: course._id, createdAt: now, updatedAt: now },
             { _id: new ObjectId(), title: 'Final Exam', dueDate: faker.date.future(), maxScore: 100, courseId: course._id, createdAt: now, updatedAt: now }
-        ]);
+        );
 
+        // Enroll students
         const shuffled = [...createdStudents].sort(() => 0.5 - Math.random());
         const enrolled = shuffled.slice(0, faker.number.int({ min: 20, max: 40 }));
-        
+
         for (const stu of enrolled) {
-            await db.collection('Enrollment').insertOne({
+            allEnrollments.push({
                 _id: new ObjectId(),
                 studentId: stu._id,
                 courseId: course._id,
@@ -189,7 +170,7 @@ async function main() {
                 else if (score >= 70) letter = 'C';
                 else if (score >= 60) letter = 'D';
 
-                await db.collection('Grade').insertOne({
+                allGrades.push({
                     _id: new ObjectId(),
                     studentId: stu._id,
                     courseId: course._id,
@@ -201,18 +182,18 @@ async function main() {
             for (let d = 1; d <= 3; d++) {
                 const date = new Date();
                 date.setDate(date.getDate() - d);
-                await db.collection('Attendance').insertOne({
+                allAttendance.push({
                     _id: new ObjectId(),
                     studentId: stu._id,
                     courseId: course._id,
-                    date: date,
+                    date,
                     status: faker.helpers.arrayElement(['PRESENT', 'PRESENT', 'PRESENT', 'ABSENT', 'LATE']),
                     createdAt: now, updatedAt: now
                 });
             }
         }
-        
-        await db.collection('Announcement').insertOne({
+
+        allAnnouncements.push({
             _id: new ObjectId(),
             title: `Welcome to ${course.title}`,
             content: faker.lorem.paragraph(),
@@ -222,7 +203,7 @@ async function main() {
         });
     }
 
-    await db.collection('Announcement').insertOne({
+    allAnnouncements.push({
         _id: new ObjectId(),
         title: "System Maintenance Scheduled",
         content: "The LMS will be down for maintenance this weekend.",
@@ -231,11 +212,25 @@ async function main() {
         createdAt: now, updatedAt: now
     });
 
-    console.log('Seed completed successfully!');
-    console.log(`\n--- LOGIN ACCOUNTS (Password for all is 'password123') ---`);
-    console.log(`Admin: admin@lms.com`);
-    console.log(`Faculty Example: ${createdFaculty[0].email}`);
-    console.log(`Student Example: ${createdStudents[0].email}`);
+    // Bulk insert all at once
+    console.log('Inserting all data to Atlas...');
+    await Promise.all([
+        db.collection('Assignment').insertMany(allAssignments),
+        db.collection('Enrollment').insertMany(allEnrollments),
+        db.collection('Grade').insertMany(allGrades),
+        db.collection('Attendance').insertMany(allAttendance),
+        db.collection('Announcement').insertMany(allAnnouncements),
+    ]);
+
+    console.log('\nSeed completed successfully!');
+    console.log(`Assignments: ${allAssignments.length}`);
+    console.log(`Enrollments: ${allEnrollments.length}`);
+    console.log(`Grades: ${allGrades.length}`);
+    console.log(`Attendance: ${allAttendance.length}`);
+    console.log(`\n--- LOGIN ACCOUNTS (Password for all: 'password123') ---`);
+    console.log(`Admin:   admin@lms.com`);
+    console.log(`Faculty: ${createdFaculty[0].email}`);
+    console.log(`Student: ${createdStudents[0].email}`);
 
     await client.close();
 }
